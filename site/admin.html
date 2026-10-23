@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
+<title>KNUMLO Officials Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<style>
+body{background:#f4f6fa}
+.top-bar{background:linear-gradient(180deg,#234675,#12284a);color:#fff;border-bottom:5px solid var(--maroon)}
+.top-bar .in{max-width:1180px;margin:auto;padding:12px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.top-bar img{width:46px;height:46px;border-radius:50%}.top-bar b{font-size:1.1rem}.top-bar small{opacity:.8;display:block}
+.top-bar .who{margin-left:auto;text-align:right;font-size:.85rem}
+.page{max-width:1180px;margin:0 auto;padding:22px 20px 60px}
+.login-card{max-width:400px;margin:70px auto;background:#fff;border-radius:18px;padding:30px;box-shadow:0 20px 50px rgba(18,40,74,.15);text-align:center}
+.login-card img{width:84px;height:84px;border-radius:50%;margin-bottom:8px}
+.login-card form{text-align:left}
+.tabs2{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 20px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px;box-shadow:0 8px 24px rgba(27,58,102,.07);margin-bottom:18px}
+.card h3{font-size:1.1rem;margin-bottom:12px}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px;box-shadow:0 6px 18px rgba(27,58,102,.07)}
+.kpi b{display:block;font-size:1.6rem;color:var(--navy)}.kpi span{font-size:.8rem;color:var(--mute)}
+.kpi.red b{color:var(--maroon)}
+.meter{height:16px;background:#e8ebf2;border-radius:99px;overflow:hidden;margin:8px 0 4px}
+.meter i{display:block;height:100%;background:linear-gradient(90deg,#1e7a4d,#34b36e);border-radius:99px}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.hb{display:grid;grid-template-columns:110px 1fr 70px;gap:10px;align-items:center;font-size:.85rem;margin:6px 0}
+.hb .bg{height:12px;background:#e8ebf2;border-radius:99px;position:relative;overflow:hidden}
+.hb .t{position:absolute;inset:0 auto 0 0;background:#9fb4d3;border-radius:99px}.hb .a{position:absolute;inset:0 auto 0 0;background:var(--navy);border-radius:99px}
+.hb span:last-child{text-align:right;color:var(--mute)}
+.filters{display:grid;grid-template-columns:2fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:12px}
+.pill{display:inline-block;padding:2px 9px;border-radius:99px;font-size:.75rem;font-weight:600;background:#e8ebf2;color:#33415c}
+.pill.active{background:#d8f1e3;color:#14633c}.pill.pending{background:#fff0c9;color:#7a5a00}.pill.rejected{background:#fbd9dc;color:#9b1c28}
+.row-actions button{margin:2px}
+td small{color:var(--mute)}
+.dlgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:14px}
+.dlcard{border:1px solid var(--line);border-radius:14px;padding:16px;background:#fbfcfe}
+.dlcard p{margin:4px 0 12px;font-size:.88rem;color:var(--mute)}
+.hide{display:none!important}
+@media(max-width:760px){.two{grid-template-columns:1fr}.filters{grid-template-columns:1fr 1fr}.filters>:first-child{grid-column:1/-1}.hb{grid-template-columns:80px 1fr 56px}}
+</style>
+</head>
+<body>
+
+<div id="loginView">
+ <div class="login-card">
+  <img src="images/logo.jpg" alt="KNUMLO">
+  <h2 style="font-size:1.4rem;color:var(--navy)">Officials portal</h2>
+  <p class="note" style="margin-top:4px">Authorised KNUMLO officials only.</p>
+  <form id="lf">
+   <label for="em">Admin email</label><input id="em" type="email" autocomplete="username" required>
+   <label for="pw">Admin verification password</label><input id="pw" type="password" autocomplete="current-password" required>
+   <div class="err" id="lerr" role="alert"></div>
+   <button class="btn" style="width:100%;margin-top:6px">Sign in</button>
+  </form>
+ </div>
+</div>
+
+<div id="app" class="hide">
+ <div class="top-bar"><div class="in">
+  <img src="images/logo.jpg" alt=""><div><b>KNUMLO Officials Portal</b><small>Membership and dues control room</small></div>
+  <div class="who"><span id="whoName"></span><br><span id="whoRole" style="opacity:.8"></span> · <a href="#" id="logout" style="color:#fff;text-decoration:underline">Sign out</a></div>
+ </div></div>
+ <div class="page">
+  <div class="tabs2" id="tabs"></div>
+
+  <div id="t-overview">
+   <div class="kpis" id="kpis"></div>
+   <div class="card"><h3>Approval progress</h3><div class="meter"><i id="mAppr" style="width:0"></i></div><div class="note" id="mApprT"></div>
+    <h3 style="margin-top:16px">Dues collected this month</h3><div class="meter"><i id="mDues" style="width:0"></i></div><div class="note" id="mDuesT"></div></div>
+   <div class="card"><h3>Registrations per day</h3><div id="chart"></div></div>
+   <div class="two">
+    <div class="card"><h3>By service sector</h3><div id="bySec"></div></div>
+    <div class="card"><h3>By county <a href="#" id="allCo" style="font-size:.8rem;font-weight:500;margin-left:6px">Show all</a></h3><div id="byCo"></div></div>
+   </div>
+   <div class="two">
+    <div class="card"><h3>Data quality</h3><div id="quality"></div></div>
+    <div class="card"><h3>Payments by channel</h3><div id="channels"></div></div>
+   </div>
+   <p class="note"><span id="upd"></span> <a href="#" id="refresh">Refresh now</a></p>
+  </div>
+
+  <div id="t-members" class="hide">
+   <div class="card">
+    <div class="filters">
+     <div><label for="fq">Search</label><input id="fq" placeholder="Name, ID, number or workstation"></div>
+     <div><label for="fs">Status</label><select id="fs"><option value="">All</option><option value="pending">Pending</option><option value="active">Approved</option><option value="rejected">Rejected</option></select></div>
+     <div><label for="fx">Sector</label><select id="fx"><option value="">All</option></select></div>
+     <div><label for="fc">County</label><select id="fc"><option value="">All</option></select></div>
+     <div><label><input id="fr" type="checkbox" style="width:auto"> Needs review</label></div>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+     <button class="btn ghost" id="bulk">Approve all verified</button>
+     <button class="btn navy" id="expF">Download this list (CSV)</button>
+    </div>
+    <div class="note" id="mCount"></div>
+    <div class="scroll"><table><thead><tr><th>Member</th><th>Contact</th><th>Sector / County</th><th>Workstation</th><th>Status</th><th></th></tr></thead><tbody id="mb"></tbody></table></div>
+    <div style="display:flex;gap:8px;align-items:center;margin-top:12px"><button class="btn ghost" id="prev">Previous</button><span id="pg" class="note"></span><button class="btn ghost" id="next">Next</button></div>
+   </div>
+  </div>
+
+  <div id="t-payments" class="hide">
+   <div class="card"><h3>Recent payments</h3><div class="scroll"><table><thead><tr><th>Date</th><th>Member</th><th>Channel</th><th>Amount</th><th>Status</th><th>Receipt</th></tr></thead><tbody id="pb"></tbody></table></div></div>
+   <div class="card"><h3>Paybill payments waiting to be matched</h3><p class="note">The account number did not match a member. Enter the correct membership number to credit the payment.</p>
+    <div class="scroll"><table><thead><tr><th>Receipt</th><th>Amount</th><th>Account typed</th><th>Phone</th><th></th></tr></thead><tbody id="ub"></tbody></table></div></div>
+  </div>
+
+  <div id="t-downloads" class="hide">
+   <div class="dlgrid">
+    <div class="dlcard" id="dMem"><b>Membership register</b><p>Every member and applicant with contact details, sector, county, status and membership number. Opens in Excel.</p><button class="btn navy" data-dl="/api/admin/export/members.csv|KNUMLO-members.csv">Download CSV</button></div>
+    <div class="dlcard" id="dPay"><b>Payments</b><p>All payments with receipt numbers, channel and status.</p><button class="btn navy" data-dl="/api/admin/export/payments.csv|KNUMLO-payments.csv">Download CSV</button></div>
+    <div class="dlcard" id="dAud"><b>Audit log</b><p>Who registered, approved, imported or exported records (latest 20,000 entries).</p><button class="btn navy" data-dl="/api/admin/export/audit.csv|KNUMLO-audit-log.csv">Download CSV</button></div>
+   </div>
+   <p class="note" style="margin-top:14px">Downloads contain personal data. Keep them secure and share only with authorised officials. Every export is recorded in the audit log.</p>
+  </div>
+
+  <div id="t-import" class="hide">
+   <div class="card"><h3>Import registrations</h3>
+    <p class="note">Upload the Google Form responses as CSV (in Google Sheets: File, Download, Comma-separated values). Repeat submissions are merged, phone numbers are tidied, and everyone is added as <b>pending</b>. Nobody receives a membership number until approved. Uploading the same file again is safe.</p>
+    <input id="file" type="file" accept=".csv,.tsv,.txt" style="margin:12px 0">
+    <button class="btn" id="imp">Upload and import</button>
+    <div id="impRes" style="margin-top:14px"></div></div>
+  </div>
+ </div>
+</div>
+
+<script>
+const CO="Mombasa,Kwale,Kilifi,Tana River,Lamu,Taita-Taveta,Garissa,Wajir,Mandera,Marsabit,Isiolo,Meru,Tharaka-Nithi,Embu,Kitui,Machakos,Makueni,Nyandarua,Nyeri,Kirinyaga,Murang'a,Kiambu,Turkana,West Pokot,Samburu,Trans Nzoia,Uasin Gishu,Elgeyo-Marakwet,Nandi,Baringo,Laikipia,Nakuru,Narok,Kajiado,Kericho,Bomet,Kakamega,Vihiga,Bungoma,Busia,Siaya,Kisumu,Homa Bay,Migori,Kisii,Nyamira,Nairobi".split(",");
+const SEC={MOH:"Ministry of Health",CPS:"County Public Service",PAR:"National referral hospitals",PRI:"Private hospitals",MISS:"Mission hospitals",UN:"Universities and institutions",SC:"State corporations"};
+const API=(window.KNUMLO_API||"").replace(/\/$/,"");
+const $=s=>document.querySelector(s),esc=t=>String(t==null?"":t).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const kes=n=>"KES "+Math.round(Number(n)||0).toLocaleString();
+let TOK=null,ME=null,PAGE=1,TOTAL=0,showAllCo=false,PROG=null,timer=null;
+try{TOK=sessionStorage.getItem("kn_tok")}catch(e){}
+const keep=v=>{try{v?sessionStorage.setItem("kn_tok",v):sessionStorage.removeItem("kn_tok")}catch(e){}};
+const api=async(p,o={})=>{const r=await fetch(API+p,{...o,headers:{"Content-Type":"application/json",...(TOK?{Authorization:"Bearer "+TOK}:{})},body:o.body?JSON.stringify(o.body):undefined});let j={};try{j=await r.json()}catch(e){}if(r.status===401&&TOK&&p!=="/api/auth/staff-login"){signOut();throw new Error("Session expired. Please sign in again.")}if(!r.ok)throw new Error(j.error||"Request failed");return j};
+const download=async(path,name)=>{try{const r=await fetch(API+path,{headers:{Authorization:"Bearer "+TOK}});if(!r.ok){let j={};try{j=await r.json()}catch(e){}throw new Error(j.error||"Download failed")}const u=URL.createObjectURL(await r.blob()),a=document.createElement("a");a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();URL.revokeObjectURL(u)}catch(x){alert(x.message)}};
+const R=()=>ME.role,has=(...r)=>r.includes(R());
+const MEMBER_ROLES=["super_admin","secretary","treasurer","branch_officer"];
+
+function signOut(){TOK=null;ME=null;keep(null);clearInterval(timer);$("#app").classList.add("hide");$("#loginView").classList.remove("hide");$("#pw").value=""}
+$("#logout").onclick=e=>{e.preventDefault();signOut()};
+$("#lf").onsubmit=async e=>{e.preventDefault();const er=$("#lerr");er.textContent="";try{const r=await api("/api/auth/staff-login",{method:"POST",body:{email:$("#em").value.trim(),password:$("#pw").value}});TOK=r.token;keep(TOK);await start()}catch(x){er.textContent=x.message}};
+
+async function start(){ME=await api("/api/admin/me");$("#loginView").classList.add("hide");$("#app").classList.remove("hide");
+ $("#whoName").textContent=ME.name;$("#whoRole").textContent=ME.role.replace("_"," ");
+ const tabs=[["overview","Progress"]];if(has(...MEMBER_ROLES))tabs.push(["members","Members"]);if(has("super_admin","secretary","treasurer"))tabs.push(["payments","Payments"]);tabs.push(["downloads","Downloads"]);if(has("super_admin","secretary"))tabs.push(["import","Import data"]);
+ $("#tabs").innerHTML=tabs.map(([k,v])=>`<button class="tab" data-t="${k}" aria-selected="false">${v}</button>`).join("");
+ $("#dMem").classList.toggle("hide",!has("super_admin","secretary"));$("#dPay").classList.toggle("hide",!has("super_admin","secretary","treasurer"));$("#dAud").classList.toggle("hide",!has("super_admin"));
+ $("#bulk").classList.toggle("hide",!has("super_admin","secretary"));$("#expF").classList.toggle("hide",!has("super_admin","secretary"));
+ show("overview");loadProgress();clearInterval(timer);timer=setInterval(()=>{if(!$("#t-overview").classList.contains("hide"))loadProgress()},60000)}
+function show(t){["overview","members","payments","downloads","import"].forEach(k=>$("#t-"+k).classList.toggle("hide",k!==t));document.querySelectorAll("#tabs .tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===t));
+ if(t==="overview")loadProgress();if(t==="members")loadMembers();if(t==="payments")loadPayments()}
+$("#tabs").onclick=e=>{if(e.target.dataset.t)show(e.target.dataset.t)};
+
+// ---- overview ----
+const hbars=(rows,max)=>rows.length?rows.map(r=>`<div class="hb"><span>${esc(SEC[r.name]||r.name)}</span><div class="bg"><div class="t" style="width:${max?r.total/max*100:0}%"></div><div class="a" style="width:${max?r.active/max*100:0}%"></div></div><span>${r.active}/${r.total}</span></div>`).join(""):'<p class="note">No data yet.</p>';
+async function loadProgress(){try{const p=await api("/api/admin/progress");PROG=p;const st=p.status,act=st.active||0,pend=st.pending||0,tot=p.total;
+ $("#kpis").innerHTML=[["Registered",tot,""],["Approved",act,""],["Pending approval",pend,"red"],["Rejected",st.rejected||0,""],["Need review",p.quality.review,"red"],["Collected this month",kes(p.payments.month),""],["Total collected",kes(p.payments.total),""]].map(([a,b,c])=>`<div class="kpi ${c}"><b>${esc(b)}</b><span>${a}</span></div>`).join("");
+ const ap=tot?Math.round(act/tot*100):0;$("#mAppr").style.width=ap+"%";$("#mApprT").textContent=`${act} of ${tot} registered members approved (${ap}%). ${pend} waiting.`;
+ const due=p.invoices.due,paid=p.invoices.paid,dp=due?Math.min(100,Math.round(paid/due*100)):0;$("#mDues").style.width=dp+"%";$("#mDuesT").textContent=due?`${kes(paid)} of ${kes(due)} billed this month (${dp}%).`:"No dues billed yet this month.";
+ const days=p.perDay.slice(-30);if(days.length){const mx=Math.max(...days.map(d=>d.n)),w=600,h=150,bw=w/days.length;
+  $("#chart").innerHTML=`<svg viewBox="0 0 ${w} ${h+26}" style="width:100%;height:auto" role="img" aria-label="Registrations per day">${days.map((d,i)=>{const bh=mx?d.n/mx*h:0;return `<rect x="${i*bw+2}" y="${h-bh}" width="${Math.max(bw-4,2)}" height="${bh}" rx="3" fill="#1B3A66"><title>${d.d}: ${d.n}</title></rect>`}).join("")}<text x="0" y="${h+18}" font-size="11" fill="#5d6577">${esc(days[0].d)}</text><text x="${w}" y="${h+18}" text-anchor="end" font-size="11" fill="#5d6577">${esc(days[days.length-1].d)}</text><text x="${w}" y="12" text-anchor="end" font-size="11" fill="#5d6577">peak ${mx}/day</text></svg>`}else $("#chart").innerHTML='<p class="note">No registrations yet.</p>';
+ $("#bySec").innerHTML=hbars(p.sector,Math.max(0,...p.sector.map(x=>x.total)));
+ const cs=showAllCo?p.byCounty:p.byCounty.slice(0,12);$("#byCo").innerHTML=hbars(cs,Math.max(0,...p.byCounty.map(x=>x.total)))+'<p class="note">Dark = approved, light = all registered.</p>';$("#allCo").textContent=showAllCo?"Show top 12":"Show all";
+ const q=p.quality;$("#quality").innerHTML=`<table><tbody><tr><td>Flagged for review</td><td><b>${q.review}</b></td></tr><tr><td>No county identified</td><td><b>${q.no_county}</b></td></tr><tr><td>No valid phone</td><td><b>${q.no_phone}</b></td></tr><tr><td>No valid email</td><td><b>${q.no_email}</b></td></tr><tr><td>Paybill payments unmatched</td><td><b>${p.unmatchedPaybill}</b></td></tr></tbody></table>`;
+ $("#channels").innerHTML=p.channels.length?`<table><thead><tr><th>Channel</th><th>Payments</th><th>Amount</th></tr></thead><tbody>${p.channels.map(c=>`<tr><td>${esc(c.channel.replace(/_/g," "))}</td><td>${c.n}</td><td>${kes(c.total)}</td></tr>`).join("")}</tbody></table>`:'<p class="note">No payments yet.</p>';
+ $("#upd").textContent="Updated "+new Date(p.updated).toLocaleTimeString()+". Refreshes every minute."}catch(x){$("#kpis").innerHTML=`<p class="err">${esc(x.message)}</p>`}}
+$("#refresh").onclick=e=>{e.preventDefault();loadProgress()};$("#allCo").onclick=e=>{e.preventDefault();showAllCo=!showAllCo;loadProgress()};
+
+// ---- members ----
+$("#fx").innerHTML+=Object.entries(SEC).map(([k,v])=>`<option value="${k}">${v}</option>`).join("");$("#fc").innerHTML+=CO.map((c,i)=>`<option value="${i+1}">${c}</option>`).join("");
+const qs=(extra={})=>new URLSearchParams({q:$("#fq").value.trim(),status:$("#fs").value,sector:$("#fx").value,county:$("#fc").value,review:$("#fr").checked?"1":"",...extra}).toString();
+async function loadMembers(){try{const r=await api("/api/admin/members?"+qs({page:PAGE,limit:50}));TOTAL=r.total;
+ $("#mCount").textContent=`${r.total.toLocaleString()} record${r.total==1?"":"s"} found`;
+ $("#mb").innerHTML=r.rows.map(m=>`<tr><td>${esc(m.fn+" "+m.ln)}<br><small>ID ${esc(m.idn)}${m.reg?" · "+esc(m.reg):""}</small></td><td>${esc(m.ph||"-")}<br><small>${esc(m.email||"-")}</small></td><td>${esc(SEC[m.sec]||m.sec||"-")}<br><small>${esc(CO[m.co-1]||"County not set")}</small></td><td>${esc(m.ws||"-")}</td><td><span class="pill ${esc(m.st)}">${esc(m.st)}</span>${m.review?' <span class="pill">review</span>':""}<br><small>${esc(m.no||"")}</small>${m.notes?`<br><small title="${esc(m.notes)}">${esc(m.notes.length>60?m.notes.slice(0,60)+"…":m.notes)}</small>`:""}</td><td class="row-actions">${m.st==="pending"&&has("super_admin","secretary")?`<button class="tab" data-a="${m.id}">Approve</button><button class="tab" data-r="${m.id}">Reject</button>`:""}</td></tr>`).join("")||'<tr><td colspan="6">No records match.</td></tr>';
+ const pages=Math.max(1,Math.ceil(TOTAL/50));$("#pg").textContent=`Page ${PAGE} of ${pages}`;$("#prev").disabled=PAGE<=1;$("#next").disabled=PAGE>=pages}catch(x){$("#mb").innerHTML=`<tr><td colspan="6" class="err">${esc(x.message)}</td></tr>`}}
+let tm;["fq","fs","fx","fc","fr"].forEach(id=>$("#"+id).addEventListener(id==="fq"?"input":"change",()=>{clearTimeout(tm);tm=setTimeout(()=>{PAGE=1;loadMembers()},id==="fq"?300:0)}));
+$("#prev").onclick=()=>{PAGE--;loadMembers()};$("#next").onclick=()=>{PAGE++;loadMembers()};
+$("#mb").onclick=async e=>{const a=e.target.dataset.a,r=e.target.dataset.r;try{if(a)await api(`/api/admin/members/${a}/approve`,{method:"POST"});if(r){if(!confirm("Reject this application?"))return;await api(`/api/admin/members/${r}/reject`,{method:"POST",body:{}})}if(a||r){loadMembers();loadProgress()}}catch(x){alert(x.message)}};
+$("#bulk").onclick=async()=>{if(!confirm("Approve every pending applicant that has no review flag? Membership numbers are issued in registration order."))return;try{const r=await api("/api/admin/approve-bulk",{method:"POST"});alert(r.approved+" members approved.");loadMembers();loadProgress()}catch(x){alert(x.message)}};
+$("#expF").onclick=()=>download("/api/admin/export/members.csv?"+qs(),"KNUMLO-members-filtered.csv");
+
+// ---- payments ----
+async function loadPayments(){try{const p=await api("/api/admin/payments?limit=100");$("#pb").innerHTML=p.map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.name)}<br><small>${esc(x.membership_no||"")}</small></td><td>${esc(x.channel.replace(/_/g," "))}</td><td>${kes(x.amount)}</td><td><span class="pill ${x.status==="completed"?"active":x.status==="pending"?"pending":"rejected"}">${esc(x.status)}</span></td><td>${esc(x.receipt_no||"-")}</td></tr>`).join("")||'<tr><td colspan="6">No payments yet.</td></tr>'}catch(x){$("#pb").innerHTML=`<tr><td colspan="6" class="err">${esc(x.message)}</td></tr>`}
+ if(has("super_admin","treasurer")){try{const u=await api("/api/admin/paybill/unmatched");$("#ub").innerHTML=u.map(x=>`<tr><td>${esc(x.trans_id)}</td><td>${kes(x.amount)}</td><td>${esc(x.bill_ref_number||"-")}</td><td>${esc(x.msisdn||"-")}</td><td><button class="tab" data-m="${esc(x.trans_id)}">Match</button></td></tr>`).join("")||'<tr><td colspan="5">Nothing waiting.</td></tr>'}catch(x){}}else $("#ub").innerHTML='<tr><td colspan="5">Only the treasurer can match payments.</td></tr>'}
+$("#ub").onclick=async e=>{const t=e.target.dataset.m;if(!t)return;const no=prompt("Membership number to credit (e.g. KNUMLO/CPS/001/047):");if(!no)return;try{await api(`/api/admin/paybill/${encodeURIComponent(t)}/match`,{method:"POST",body:{membershipNo:no}});loadPayments();loadProgress()}catch(x){alert(x.message)}};
+
+// ---- downloads & import ----
+document.querySelectorAll("[data-dl]").forEach(b=>b.onclick=()=>{const [p,n]=b.dataset.dl.split("|");download(p,n)});
+$("#imp").onclick=async()=>{const f=$("#file").files[0],res=$("#impRes");if(!f){res.innerHTML='<p class="err">Choose a CSV file first.</p>';return}
+ if(f.size>3.5e6){res.innerHTML='<p class="err">The file is too large. Keep it under 3 MB.</p>';return}
+ $("#imp").disabled=true;res.innerHTML='<p class="note">Importing, please wait...</p>';
+ try{const r=await api("/api/admin/import",{method:"POST",body:{csv:await f.text()}});
+  res.innerHTML=`<div class="ok-box"><b>${r.imported.toLocaleString()} new members imported</b> from ${r.rows.toLocaleString()} rows.<br>Already in the database: ${r.alreadyInDatabase}. Repeat submissions merged: ${r.mergedDuplicates}. Need review (no county): ${r.needReview}. Rows rejected: ${r.rejected}.</div>`+(r.rejectedSample.length?`<h3 style="font-size:1rem;margin-top:14px">Rows to fix and re-upload</h3><div class="scroll"><table><thead><tr><th>ID typed</th><th>Name</th><th>Reason</th></tr></thead><tbody>${r.rejectedSample.map(x=>`<tr><td>${esc(x.id)}</td><td>${esc(x.name)}</td><td>${esc(x.reason)}</td></tr>`).join("")}</tbody></table></div>`:"");loadProgress()}
+ catch(x){res.innerHTML=`<p class="err">${esc(x.message)}</p>`}$("#imp").disabled=false};
+
+if(TOK)start().catch(()=>signOut());
+</script>
+</body>
+</html>

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>KNUMLO – Kenya National Union of Medical Laboratory Officers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header><div class="nav">
+<img src="images/logo.jpg" alt="KNUMLO logo"><span class="brand">KNUMLO</span>
+<nav id="menu"><a class="hm" href="#about">About</a><a class="hm" href="#" data-reg>Join</a><a class="hm" href="#leadership">Leadership</a><a class="hm" href="#services">Member services</a><a class="hm" href="#contact">Contact</a></nav><button class="btn" data-open>Member</button><button class="burger" aria-label="Menu" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button>
+</div></header>
+
+<div class="hero"><div class="wrap">
+<div>
+<h1>We see beyond.</h1>
+<p>The Kenya National Union of Medical Laboratory Officers protects, represents and grows the people behind every diagnosis in the country.</p>
+<div class="acts"><a class="btn ghost" href="#about">About the union</a></div>
+</div>
+</div></div>
+
+<section id="about"><div class="wrap">
+<h2>The people behind every diagnosis</h2>
+<p class="lead">Medical laboratory officers run the tests doctors rely on to diagnose, treat and track disease. Most patients never meet them. KNUMLO works to change that.</p>
+<div class="grid">
+<div class="item"><h3>Behind most diagnoses</h3><p>Malaria, TB, HIV viral load, blood counts and cancer screening: lab results guide a large share of clinical decisions.</p></div>
+<div class="item"><h3>First line in outbreaks</h3><p>From cholera to mpox, laboratories confirm cases early so health teams can respond fast.</p></div>
+<div class="item"><h3>Work with real risk</h3><p>Officers handle infectious samples and chemicals daily. Safe labs and protective equipment protect them and their patients.</p></div>
+<div class="item"><h3>Ask for a registered officer</h3><p>Accurate results start with qualified, licensed professionals. Ask who ran your test and have your results explained.</p></div>
+</div></div></section>
+
+<section id="services" class="band"><div class="wrap">
+<h2>Member services</h2>
+<p class="lead">Everything you need as a member, from one login: pay dues, check your status, and download receipts.</p>
+<div class="grid">
+<div class="item"><h3>Pay dues</h3><p>M-Pesa, Airtel Money, T-Kash, card or bank.</p></div>
+<div class="item"><h3>Payment history</h3><p>See every contribution and its reference.</p></div>
+<div class="item"><h3>Membership status</h3><p>Know at a glance if you are up to date.</p></div>
+<div class="item"><h3>Digital membership card</h3><p>Download your card with a QR code anyone can verify.</p></div>
+<div class="item"><h3>Join KNUMLO</h3><p>Register online. Your membership number is issued once an official approves your application.</p><button class="btn" data-reg style="margin-top:12px">Register</button></div>
+</div></div></section>
+
+<dialog id="dlg" aria-label="Member portal"><div class="portal"><button class="btn ghost x" id="close">Close</button>
+
+<form id="loginView" class="login"><h3 style="font-size:1.5rem">Member login</h3>
+<label for="role">Login as</label><select id="role"><option value="member">Member</option><option value="staff">KNUMLO official</option></select>
+<label for="mno">Membership number, ID number or official email</label><input id="mno" placeholder="e.g. KNUMLO/CPS/001/047" autocomplete="username">
+<label for="pw">Password</label><input id="pw" type="password" autocomplete="current-password">
+<div class="err" id="err" role="alert"></div>
+<button class="btn" style="width:100%;margin-top:6px">Log in</button>
+
+</form>
+
+<div id="adm" class="hide">
+<div class="top"><h3 style="font-size:1.5rem">Officials dashboard</h3><button class="btn ghost" id="aout" style="padding:7px 14px">Log out</button></div>
+<div class="stats" id="ast"></div>
+<div class="row"><div><label for="aq">Search records</label><input id="aq" placeholder="Name, ID, number or county"></div><div style="align-self:end"><button class="btn navy" id="aex" style="width:100%">Export register (Excel CSV)</button></div></div>
+<div class="scroll"><table><thead><tr><th>Applicant</th><th>Sector</th><th>County</th><th>Status</th><th>Number</th><th></th></tr></thead><tbody id="atb"></tbody></table></div>
+<h3 style="font-size:1.1rem;margin-top:22px">Active members by sector and county</h3><p id="arep" style="font-size:.9rem"></p>
+</div>
+<div id="dash" class="hide">
+<div class="top"><div><h3 id="who" style="font-size:1.5rem"></h3><span id="mid" style="color:var(--mute)"></span></div>
+<div><span id="status" class="badge">Dues pending</span> <button class="btn ghost" id="out" style="padding:7px 14px">Log out</button></div></div>
+<div id="mcard"></div>
+<div class="stats">
+<div class="stat"><b id="bal">KES 3,000</b><span>Outstanding dues</span></div>
+<div class="stat"><b>KES 500</b><span>Monthly subscription</span></div>
+<div class="stat"><b id="paid">KES 0</b><span>Total paid</span></div>
+</div>
+
+<h3 style="font-size:1.25rem">Pay dues</h3>
+<div class="row"><div><label for="amt">Amount (KES)</label><input id="amt" type="number" min="50" value="500"></div>
+<div><label for="mon">Months covered</label><select id="mon"><option>Current month</option><option>3 months</option><option>6 months</option><option>12 months</option></select></div></div>
+<div class="tabs" role="tablist" id="tabs"></div>
+<div class="panel" id="panel" role="tabpanel"></div>
+<div id="receipt"></div>
+
+<h3 style="font-size:1.25rem;margin-top:28px">Payment history</h3>
+<div class="scroll"><table><thead><tr><th>Date</th><th>Channel</th><th>Reference</th><th>Amount</th></tr></thead><tbody id="hist"><tr><td colspan="4" style="color:var(--mute)">No payments yet. Your receipts will appear here.</td></tr></tbody></table></div>
+</div>
+</div></dialog>
+
+<dialog id="regdlg" aria-label="Membership registration"><div class="portal"><button class="btn ghost x" id="rclose">Close</button>
+<form id="regf"><h3 style="font-size:1.5rem">Join KNUMLO</h3><p class="note" style="margin-top:6px">Submitting this form does not make you a member. A KNUMLO official verifies and approves each application before a membership number is issued.</p>
+<div class="row"><div><label for="rf">First name</label><input id="rf" required></div><div><label for="rl">Last name</label><input id="rl" required></div></div>
+<div class="row"><div><label for="rid">National ID / passport no.</label><input id="rid" required></div><div><label for="rph">Phone</label><input id="rph" type="tel" placeholder="0712 345 678" required></div></div>
+<div class="row"><div><label for="rem">Email</label><input id="rem" type="email" required></div><div><label for="rds">Designation</label><select id="rds"><option>Medical Laboratory Officer</option><option>Medical Laboratory Technologist</option><option>Medical Laboratory Technician</option><option>Intern</option></select></div></div>
+<div class="row"><div><label for="rsec">Service sector</label><select id="rsec"></select></div><div><label for="rco">County</label><select id="rco"></select></div></div>
+<div class="row"><div><label for="remT" id="remL">Employer</label><input id="remT"><select id="remS" class="hide"></select></div><div><label for="rws">Workstation</label><input id="rws" required></div></div>
+<div class="err" id="rerr" role="alert"></div><button class="btn" style="width:100%">Submit application</button></form>
+<div id="rdone" class="hide"></div></div></dialog>
+
+<dialog id="vdlg" aria-label="Verify membership"><div class="portal"><button class="btn ghost x" id="vclose">Close</button><h3 style="font-size:1.5rem">Membership verification</h3><div id="vres"></div></div></dialog>
+
+<section id="leadership"><div class="wrap">
+<h2>Our leadership</h2>
+<p class="lead">The officials elected by members to guide the union and speak on behalf of every laboratory officer.</p>
+<div class="grid">
+<div class="item person"><div class="av"><svg viewBox="0 0 24 24" width="52" height="52" fill="#fff" aria-hidden="true"><circle cx="12" cy="8" r="4.2"/><path d="M3.5 21c.6-4.6 4-7 8.5-7s7.9 2.4 8.5 7z"/></svg></div><h3>Full Name</h3><p class="role">National Chairperson</p></div>
+<div class="item person"><div class="av"><svg viewBox="0 0 24 24" width="52" height="52" fill="#fff" aria-hidden="true"><circle cx="12" cy="8" r="4.2"/><path d="M3.5 21c.6-4.6 4-7 8.5-7s7.9 2.4 8.5 7z"/></svg></div><h3>Full Name</h3><p class="role">Secretary General</p></div>
+<div class="item person"><div class="av"><svg viewBox="0 0 24 24" width="52" height="52" fill="#fff" aria-hidden="true"><circle cx="12" cy="8" r="4.2"/><path d="M3.5 21c.6-4.6 4-7 8.5-7s7.9 2.4 8.5 7z"/></svg></div><h3>Full Name</h3><p class="role">National Treasurer</p></div>
+<div class="item person"><div class="av"><svg viewBox="0 0 24 24" width="52" height="52" fill="#fff" aria-hidden="true"><circle cx="12" cy="8" r="4.2"/><path d="M3.5 21c.6-4.6 4-7 8.5-7s7.9 2.4 8.5 7z"/></svg></div><h3>Full Name</h3><p class="role">Organising Secretary</p></div>
+</div></div></section>
+
+<section id="newsletter"><div class="wrap"><div class="news">
+<div><h2>Get the KNUMLO newsletter</h2><p>Union updates, CPD opportunities and laboratory news, straight to your inbox.</p></div>
+<div><form id="news"><input id="nem" type="email" placeholder="Your email address" aria-label="Email address" autocomplete="email"><button class="btn">Subscribe</button></form><div class="msg" id="nmsg" role="status"></div></div>
+</div></div></section>
+
+<section id="contact" class="band"><div class="wrap">
+<h2>Contact the secretariat</h2>
+<p class="lead">Questions about your membership or a payment? Write to us with your membership number and payment reference.</p>
+<p><b>Email:</b> info@knumlo.or.ke &nbsp; <b>Phone:</b> +254 700 000 000<br><b>Office:</b> Nairobi, Kenya</p>
+<p style="margin:22px 0 10px"><b>Follow KNUMLO</b></p><div class="soc dark"></div>
+</div></section>
+
+<footer><div class="wrap"><div><b style="font-family:Montserrat,sans-serif;font-size:1.1rem">KNUMLO</b><br>Kenya National Union of Medical Laboratory Officers<br><i>we see beyond</i></div><div><div class="soc"></div><div style="margin-top:12px">© 2026 KNUMLO. All rights reserved.</div></div></div></footer>
+
+<script>window.KNUMLO_API="/";   // "/" = API on this same site (Netlify). Use a full address if the API is elsewhere.</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
