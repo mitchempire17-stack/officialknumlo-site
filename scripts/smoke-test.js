@@ -1,0 +1,31 @@
+// End-to-end check against a running API (set BASE, default http://localhost:3000). Needs a staff user: STAFF_EMAIL / STAFF_PASSWORD.
+const BASE = process.env.BASE || 'http://localhost:3000', SEC = process.env.MPESA_CALLBACK_SECRET;
+const call = async (m, p, b, t) => { const r = await fetch(BASE + p, { method: m, headers: { 'Content-Type': 'application/json', ...(t ? { Authorization: 'Bearer ' + t } : {}) }, body: b ? JSON.stringify(b) : undefined }); let j = null; try { j = await r.json(); } catch {} return { s: r.status, j }; };
+const check = (name, cond, extra) => { console.log((cond ? 'PASS ' : 'FAIL ') + name + (cond ? '' : ' ' + JSON.stringify(extra))); if (!cond) process.exitCode = 1; };
+(async () => {
+  const id = String(10000000 + Math.floor(Math.random() * 8e7)), phone = '07' + String(10000000 + Math.floor(Math.random() * 8e7));
+  let r = await call('POST', '/api/register', { firstName: 'Test', lastName: 'Member', idNumber: id, phone, email: `t${id}@example.com`, designation: 'Medical Laboratory Officer', sector: 'CPS', countyId: 47, workstation: 'Test Hospital' });
+  check('register', r.s === 201, r);
+  r = await call('POST', '/api/register', { firstName: 'Test', lastName: 'Member', idNumber: id, phone, email: `t${id}@example.com`, sector: 'CPS', countyId: 47 });
+  check('duplicate rejected', r.s === 409, r);
+  r = await call('POST', '/api/auth/staff-login', { email: process.env.STAFF_EMAIL, password: process.env.STAFF_PASSWORD });
+  check('staff login', r.s === 200, r); const st = r.j.token;
+  r = await call('GET', `/api/admin/members?status=pending&q=${id}`, null, st);
+  check('pending listed', r.j.total === 1 && !r.j.rows[0].no, r); const mid = r.j.rows[0].id;
+  r = await call('POST', `/api/admin/members/${mid}/approve`, null, st);
+  check('approve issues number', /^KNUMLO\/CPS\/\d{3,}\/047$/.test(r.j.membershipNo), r); const no = r.j.membershipNo;
+  r = await call('GET', `/api/verify/${no.replace(/\//g, '_')}`);
+  check('verify valid, no personal data', r.j.valid === true && !r.j.fn && !r.j.phone, r);
+  r = await call('POST', '/api/auth/login', { login: id, password: 'x' });
+  check('login blocked until password set', r.s === 403, r);
+  r = await call('POST', '/api/mpesa/' + SEC + '/c2b/confirmation', { TransID: 'T' + id, TransTime: '20261021101500', TransAmount: '500', BillRefNumber: no.replace(/\//g, ''), MSISDN: '254700000000', FirstName: 'TEST' });
+  check('paybill confirmation accepted', r.s === 200, r);
+  r = await call('POST', '/api/mpesa/' + SEC + '/c2b/confirmation', { TransID: 'T' + id, TransTime: '20261021101500', TransAmount: '500', BillRefNumber: no, MSISDN: '254700000000' });
+  check('repeat confirmation ignored', r.s === 200, r);
+  r = await call('POST', '/api/mpesa/' + SEC + '/c2b/confirmation', { TransID: 'U' + id, TransAmount: '500', BillRefNumber: 'WRONG', MSISDN: '254700000001' });
+  r = await call('GET', '/api/admin/paybill/unmatched', null, st);
+  check('wrong account number goes to unmatched list', r.s === 200 && r.j.some(x => x.trans_id === 'U' + id), r);
+  r = await call('GET', '/api/admin/stats', null, st); check('stats', r.j.active >= 1, r);
+  r = await call('GET', '/api/admin/members', null, null); check('admin routes need login', r.s === 401, r);
+  console.log(process.exitCode ? 'SOME CHECKS FAILED' : 'ALL CHECKS PASSED');
+})();
