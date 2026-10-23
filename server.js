@@ -75,6 +75,9 @@ app.post('/api/register', limiter(20, 60), wrap(async (req, res) => {
   const s = await db('SELECT employer_rule FROM service_sectors WHERE code=$1', [sec]);
   if (!s.rowCount) return bad(res, 'Choose a service sector.');
   const county = Number(b.countyId) || null;
+  const kmlttb = String(b.kmlttbNo || '').trim().toUpperCase().replace(/\s+/g, '').slice(0, 30);
+  if (b.designation !== 'Intern' && !kmlttb) return bad(res, 'Enter your KMLTTB registration or licence number.');
+  if (kmlttb && !/^[A-Z0-9\/\-]{3,30}$/.test(kmlttb)) return bad(res, 'Check your KMLTTB number (letters, numbers, / and - only).');
   let employerId = null;
   if (s.rows[0].employer_rule === 'EMPLOYER') {
     const e = await db('SELECT id FROM employers WHERE sector_code=$1 AND code=$2 AND active', [sec, String(b.employer || '').toUpperCase()]);
@@ -83,9 +86,9 @@ app.post('/api/register', limiter(20, 60), wrap(async (req, res) => {
   } else if (s.rows[0].employer_rule === 'COUNTY' && !(county >= 1 && county <= 47)) return bad(res, 'Choose your county.');
   const cadre = await db('SELECT id FROM cadres WHERE name = $1', [b.designation]);
   try {
-    const r = await db(`INSERT INTO members (first_name,last_name,id_number,phone,email,designation,cadre_id,sector_code,employer_id,county_id,workstation,status,registered_at)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,'pending',now()) RETURNING id`,
-      [first, last, id, ph, em, b.designation || null, cadre.rows[0] ? cadre.rows[0].id : null, sec, employerId, county, (employerId ? String(b.workstation || '') : [b.employer, b.workstation].filter(Boolean).join(' - ')).slice(0, 200)]);
+    const r = await db(`INSERT INTO members (first_name,last_name,id_number,phone,email,designation,cadre_id,sector_code,employer_id,county_id,workstation,kmltb_licence_no,status,registered_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,'pending',now()) RETURNING id`,
+      [first, last, id, ph, em, b.designation || null, cadre.rows[0] ? cadre.rows[0].id : null, sec, employerId, county, (employerId ? String(b.workstation || '') : [b.employer, b.workstation].filter(Boolean).join(' - ')).slice(0, 200), kmlttb || null]);
     res.status(201).json({ reference: 'APP-' + r.rows[0].id.slice(0, 6).toUpperCase() });
   } catch (e) {
     if (e.code === '23505') return bad(res, 'A member or application with this ID, phone or email already exists.', 409);
