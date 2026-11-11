@@ -117,6 +117,24 @@ td small{color:var(--mute)}
    <p class="note" style="margin-top:14px">Downloads contain personal data. Keep them secure and share only with authorised officials. Every export is recorded in the audit log.</p>
   </div>
 
+  <div id="t-sms" class="hide">
+   <div class="card"><h3>Bulk SMS</h3><div id="smsInfo" class="note"></div></div>
+   <div class="card">
+    <div class="row"><div><label for="sSender">Sender ID</label><select id="sSender"></select></div>
+     <div><label for="sSt">Send to</label><select id="sSt"><option value="active">Approved members</option><option value="pending">Pending applicants</option><option value="">Everyone</option></select></div></div>
+    <div class="row"><div><label for="sSec">Sector (optional)</label><select id="sSec"><option value="">All sectors</option></select></div>
+     <div><label for="sCo">County (optional)</label><select id="sCo"><option value="">All counties</option></select></div></div>
+    <label for="sMsg">Message</label><textarea id="sMsg" rows="5" maxlength="612" style="width:100%;padding:11px 12px;border:1.5px solid var(--line);border-radius:8px;font:inherit" placeholder="Type your message to members"></textarea>
+    <div class="note" id="sCount">0 characters</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin:12px 0"><button class="btn ghost" id="sPrev">Count recipients</button><button class="btn" id="sSend">Send SMS</button></div>
+    <div id="sPrevRes" class="note"></div>
+    <div class="row" style="margin-top:12px"><div><label for="sTest">Send a test to one phone</label><input id="sTest" type="tel" placeholder="0712 345 678"></div><div style="align-self:end"><button class="btn navy" id="sTestBtn" style="width:100%">Send test</button></div></div>
+    <div class="meter hide" id="sBar"><i id="sBarI" style="width:0"></i></div><div id="sRes" style="margin-top:10px"></div>
+    <p class="note">Members without a valid phone number, or who have opted out, are skipped automatically.</p>
+   </div>
+   <div class="card"><h3>Sent campaigns</h3><div class="scroll"><table><thead><tr><th>Date</th><th>Message</th><th>Sender</th><th>People</th><th>Sent</th><th>Failed</th><th></th></tr></thead><tbody id="sHist"></tbody></table></div><div id="sFail"></div></div>
+  </div>
+
   <div id="t-import" class="hide">
    <div class="card"><h3>Import registrations</h3>
     <p class="note">Upload the Google Form responses as CSV (in Google Sheets: File, Download, Comma-separated values). Repeat submissions are merged, phone numbers are tidied, and everyone is added as <b>pending</b>. Nobody receives a membership number until approved. Uploading the same file again is safe.</p>
@@ -147,13 +165,13 @@ $("#lf").onsubmit=async e=>{e.preventDefault();const er=$("#lerr");er.textConten
 
 async function start(){ME=await api("/api/admin/me");$("#loginView").classList.add("hide");$("#app").classList.remove("hide");
  $("#whoName").textContent=ME.name;$("#whoRole").textContent=ME.role.replace("_"," ");
- const tabs=[["overview","Progress"]];if(has(...MEMBER_ROLES))tabs.push(["members","Members"]);if(has("super_admin","secretary","treasurer"))tabs.push(["payments","Payments"]);tabs.push(["downloads","Downloads"]);if(has("super_admin","secretary"))tabs.push(["import","Import data"]);
+ const tabs=[["overview","Progress"]];if(has(...MEMBER_ROLES))tabs.push(["members","Members"]);if(has("super_admin","secretary","treasurer"))tabs.push(["payments","Payments"]);tabs.push(["downloads","Downloads"]);if(has("super_admin","secretary"))tabs.push(["sms","Bulk SMS"]);if(has("super_admin","secretary"))tabs.push(["import","Import data"]);
  $("#tabs").innerHTML=tabs.map(([k,v])=>`<button class="tab" data-t="${k}" aria-selected="false">${v}</button>`).join("");
  $("#dMem").classList.toggle("hide",!has("super_admin","secretary"));$("#dPay").classList.toggle("hide",!has("super_admin","secretary","treasurer"));$("#dAud").classList.toggle("hide",!has("super_admin"));
  $("#bulk").classList.toggle("hide",!has("super_admin","secretary"));$("#expF").classList.toggle("hide",!has("super_admin","secretary"));
  show("overview");loadProgress();clearInterval(timer);timer=setInterval(()=>{if(!$("#t-overview").classList.contains("hide"))loadProgress()},60000)}
-function show(t){["overview","members","payments","downloads","import"].forEach(k=>$("#t-"+k).classList.toggle("hide",k!==t));document.querySelectorAll("#tabs .tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===t));
- if(t==="overview")loadProgress();if(t==="members")loadMembers();if(t==="payments")loadPayments()}
+function show(t){["overview","members","payments","downloads","sms","import"].forEach(k=>$("#t-"+k).classList.toggle("hide",k!==t));document.querySelectorAll("#tabs .tab").forEach(b=>b.setAttribute("aria-selected",b.dataset.t===t));
+ if(t==="overview")loadProgress();if(t==="members")loadMembers();if(t==="payments")loadPayments();if(t==="sms")loadSms()}
 $("#tabs").onclick=e=>{if(e.target.dataset.t)show(e.target.dataset.t)};
 
 // ---- overview ----
@@ -197,6 +215,35 @@ $("#imp").onclick=async()=>{const f=$("#file").files[0],res=$("#impRes");if(!f){
  try{const r=await api("/api/admin/import",{method:"POST",body:{csv:await f.text()}});
   res.innerHTML=`<div class="ok-box"><b>${r.imported.toLocaleString()} new members imported</b> from ${r.rows.toLocaleString()} rows.<br>Already in the database: ${r.alreadyInDatabase}. Repeat submissions merged: ${r.mergedDuplicates}. Need review (no county): ${r.needReview}. Rows rejected: ${r.rejected}.</div>`+(r.rejectedSample.length?`<h3 style="font-size:1rem;margin-top:14px">Rows to fix and re-upload</h3><div class="scroll"><table><thead><tr><th>ID typed</th><th>Name</th><th>Reason</th></tr></thead><tbody>${r.rejectedSample.map(x=>`<tr><td>${esc(x.id)}</td><td>${esc(x.name)}</td><td>${esc(x.reason)}</td></tr>`).join("")}</tbody></table></div>`:"");loadProgress()}
  catch(x){res.innerHTML=`<p class="err">${esc(x.message)}</p>`}$("#imp").disabled=false};
+
+
+// ---- bulk SMS ----
+let smsCfg=null;
+$("#sSec").innerHTML+=Object.entries(SEC).map(([k,v])=>`<option value="${k}">${v}</option>`).join("");$("#sCo").innerHTML+=CO.map((c,i)=>`<option value="${i+1}">${c}</option>`).join("");
+const aud=()=>({status:$("#sSt").value,sector:$("#sSec").value,county:$("#sCo").value});
+const partsOf=m=>{const n=[...m].length,u=/[^\x20-\x7E\n£¥èéùìòÇØøÅåÆæßÉ¤¡ÄÖÑÜ§¿äöñüà]/.test(m);return n?(u?(n<=70?1:Math.ceil(n/67)):(n<=160?1:Math.ceil(n/153))):0};
+$("#sMsg").oninput=()=>{const m=$("#sMsg").value;$("#sCount").textContent=`${[...m].length} characters, ${partsOf(m)} SMS part${partsOf(m)==1?"":"s"} per person`};
+async function loadSms(){try{smsCfg=await api("/api/admin/sms/config");
+ $("#smsInfo").innerHTML=smsCfg.live?`<b style="color:#14633c">Live.</b> Messages are delivered through ${esc(smsCfg.provider)}. ${smsCfg.balance?"Credit: <b>"+esc(smsCfg.balance)+"</b>.":""}`:`<b style="color:var(--maroon)">Simulation mode.</b> Messages are NOT delivered. Add the SMS settings in Netlify (see the README) to go live.`;
+ $("#sSender").innerHTML=smsCfg.senderIds.length?smsCfg.senderIds.map(x=>`<option>${esc(x)}</option>`).join(""):'<option value="">Default (no sender ID set)</option>'}catch(x){$("#smsInfo").textContent=x.message}
+ loadCampaigns()}
+async function loadCampaigns(){try{const c=await api("/api/admin/sms/campaigns");$("#sHist").innerHTML=c.map(x=>`<tr><td>${esc(x.date)}</td><td>${esc(x.message.length>70?x.message.slice(0,70)+"…":x.message)}</td><td>${esc(x.sender_id||"-")}</td><td>${x.recipients}</td><td>${x.sent}${x.waiting?` (+${x.waiting} waiting)`:""}</td><td>${x.failed}</td><td>${x.failed?`<button class="tab" data-f="${x.id}">Failures</button>`:""}${x.waiting?`<button class="tab" data-c="${x.id}">Continue sending</button>`:""}</td></tr>`).join("")||'<tr><td colspan="7">No campaigns yet.</td></tr>'}catch(x){}}
+$("#sHist").onclick=async e=>{const id=e.target.dataset.f;if(!id)return;const f=await api(`/api/admin/sms/campaigns/${id}/failures`);$("#sFail").innerHTML=`<h3 style="font-size:1rem;margin-top:14px">Failed numbers</h3><div class="scroll"><table><thead><tr><th>Member</th><th>Phone</th><th>Reason</th></tr></thead><tbody>${f.map(x=>`<tr><td>${esc(x.name||"-")}</td><td>${esc(x.phone)}</td><td>${esc(x.error||"-")}</td></tr>`).join("")}</tbody></table></div>`};
+$("#sHist").addEventListener("click",async e=>{const id=e.target.dataset.c;if(!id)return;const res=$("#sRes");res.innerHTML='<p class="note">Continuing...</p>';try{let left=1,sent=0,failed=0;while(left>0){const r=await api(`/api/admin/sms/campaigns/${id}/send`,{method:"POST"});sent+=r.sent;failed+=r.failed;left=r.remaining;if(!r.sent&&!r.failed&&left>0)break}res.innerHTML=`<div class="ok-box">Continued: ${sent} sent, ${failed} failed.</div>`;loadCampaigns()}catch(x){res.innerHTML=`<p class="err">${esc(x.message)}</p>`}});
+$("#sPrev").onclick=async()=>{try{const r=await api("/api/admin/sms/preview",{method:"POST",body:{audience:aud(),message:$("#sMsg").value}});$("#sPrevRes").textContent=`${r.recipients.toLocaleString()} people will receive it (${r.skipped.toLocaleString()} skipped: no phone or opted out). About ${r.estimatedUnits.toLocaleString()} SMS units.`}catch(x){$("#sPrevRes").textContent=x.message}};
+$("#sTestBtn").onclick=async()=>{try{const r=await api("/api/admin/sms/test",{method:"POST",body:{phone:$("#sTest").value,message:$("#sMsg").value,senderId:$("#sSender").value}});$("#sRes").innerHTML=r.ok?'<div class="ok-box">Test message accepted for delivery.</div>':`<p class="err">Test failed: ${esc(r.error||"unknown")}</p>`}catch(x){$("#sRes").innerHTML=`<p class="err">${esc(x.message)}</p>`}};
+$("#sSend").onclick=async()=>{const res=$("#sRes"),bar=$("#sBar"),fill=$("#sBarI");
+ try{const msg=$("#sMsg").value.trim();if(!msg){res.innerHTML='<p class="err">Write a message first.</p>';return}
+  const p=await api("/api/admin/sms/preview",{method:"POST",body:{audience:aud(),message:msg}});
+  if(!p.recipients){res.innerHTML='<p class="err">No members match this audience.</p>';return}
+  if(!confirm(`Send this SMS to ${p.recipients.toLocaleString()} people from "${$("#sSender").value||"default sender"}"?\n\n${msg}`))return;
+  $("#sSend").disabled=true;res.innerHTML="";bar.classList.remove("hide");fill.style.width="0";
+  const c=await api("/api/admin/sms/campaigns",{method:"POST",body:{message:msg,audience:aud(),senderId:$("#sSender").value}});
+  let sent=0,failed=0,left=c.recipients;
+  while(left>0){const r=await api(`/api/admin/sms/campaigns/${c.id}/send`,{method:"POST"});sent+=r.sent;failed+=r.failed;left=r.remaining;fill.style.width=Math.round((c.recipients-left)/c.recipients*100)+"%";res.innerHTML=`<p class="note">Sending... ${sent+failed} of ${c.recipients}</p>`;if(!r.sent&&!r.failed&&left>0)break}
+  res.innerHTML=`<div class="ok-box"><b>Done.</b> ${sent.toLocaleString()} sent, ${failed.toLocaleString()} failed${left?`, ${left} still waiting (open Bulk SMS again to continue)`:""}.</div>`;loadCampaigns()}
+ catch(x){res.innerHTML=`<p class="err">${esc(x.message)}. You can open Bulk SMS again and continue; messages already sent are not repeated.</p>`;loadCampaigns()}
+ $("#sSend").disabled=false};
 
 if(TOK)start().catch(()=>signOut());
 </script>
