@@ -10,4 +10,9 @@ outer.use((req, res, next) => {
   req.url = u; next();
 });
 outer.use(app);
-exports.handler = serverless(outer);
+const { apply } = require('../../notification-bootstrap');
+const serve = serverless(outer);
+exports.handler = async (event, context) => {
+  try { await apply(); } catch (error) { console.error('KNUMLO notification setup not completed:', error.message); }
+  return serve(event, context);
+};

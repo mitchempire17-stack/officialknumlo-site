@@ -5,7 +5,7 @@
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 -- ---------- Types ----------
-CREATE TYPE member_status   AS ENUM ('pending','active','suspended','exited');
+CREATE TYPE member_status   AS ENUM ('pending','active','suspended','exited','rejected');
 CREATE TYPE payment_channel AS ENUM ('mpesa_paybill','mpesa_stk','airtel_money','t_kash','card','bank_transfer','pesalink','cash');
 CREATE TYPE payment_status  AS ENUM ('pending','completed','failed','cancelled','reversed');
 CREATE TYPE invoice_status  AS ENUM ('unpaid','partial','paid','waived');

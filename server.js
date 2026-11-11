@@ -3,6 +3,7 @@ const express = require('express'), helmet = require('helmet'), cors = require('
 const bcrypt = require('bcryptjs'), jwt = require('jsonwebtoken'), crypto = require('crypto'), { Pool } = require('pg');
 const daraja = require('./daraja');
 const importer = require('./importer');
+const sms = require('./sms');
 const E = process.env;
 if (!E.JWT_SECRET || !E.DATABASE_URL) {
   const m = 'JWT_SECRET and DATABASE_URL are required';
@@ -42,10 +43,8 @@ const limiter = (max, mins = 15) => rateLimit({ windowMs: mins * 60000, max, sta
   validate: { ip: false, trustProxy: false, xForwardedForHeader: false }, message: { error: 'Too many attempts. Try again later.' } });
 
 async function sendSms(phone, text) {
-  if (E.SMS_PROVIDER === 'africastalking' && E.AT_API_KEY) {
-    const body = new URLSearchParams({ username: E.AT_USERNAME, to: phone, message: text, ...(E.AT_SENDER_ID ? { from: E.AT_SENDER_ID } : {}) });
-    await fetch('https://api.africastalking.com/version1/messaging', { method: 'POST', headers: { apiKey: E.AT_API_KEY, Accept: 'application/json', 'Content-Type': 'application/x-www-form-urlencoded' }, body });
-  } else console.log(`[SMS to ${phone}] ${text}`);   // development only
+  if (!sms.live() || E.AT_ENV === 'sandbox') return { ok: false, error: 'Live SMS service not configured' };
+  return sms.sendSms(phone, text);
 }
 async function issueResetToken(memberId, phone, intro) {
   const t = crypto.randomBytes(24).toString('hex');
@@ -352,6 +351,86 @@ app.post('/api/admin/payments', money, wrap(async (req, res) => {
     await audit(req, 'payment.recorded', 'payments', p.id, { channel: b.channel, amount });
     res.status(201).json(p);
   } catch (e) { if (e.code === '23505') return bad(res, 'That reference was already recorded.', 409); throw e; }
+}));
+
+// ---------- bulk SMS (officials: super_admin and secretary) ----------
+const smsStaff = auth('staff', ['super_admin', 'secretary']);
+function audienceSql(a = {}) {
+  const f = memberFilter({ status: a.status, sector: a.sector, county: a.county });
+  const extra = 'm.phone IS NOT NULL AND NOT m.sms_opt_out';
+  return { where: f.where ? f.where + ' AND ' + extra : ' WHERE ' + extra, p: f.p };
+}
+const cleanMsg = m => String(m || '').replace(/\r/g, '').trim();
+const pickSender = id => {
+  const allowed = sms.senderIds(); id = String(id || '').trim();
+  if (!allowed.length) return null;
+  return allowed.includes(id) ? id : allowed[0];
+};
+app.get('/api/admin/sms/config', smsStaff, wrap(async (req, res) => {
+  res.json({ live: sms.live(), provider: sms.live() ? 'africastalking' : 'simulation', senderIds: sms.senderIds(), balance: await sms.balance() });
+}));
+app.post('/api/admin/sms/preview', smsStaff, wrap(async (req, res) => {
+  const { where, p } = audienceSql(req.body.audience), m = cleanMsg(req.body.message), seg = sms.segments(m);
+  const n = (await db(`SELECT count(*)::int AS n FROM members m${where}`, p)).rows[0].n;
+  const f = memberFilter(req.body.audience || {});
+  const total = (await db(`SELECT count(*)::int AS n FROM members m${f.where}`, f.p)).rows[0].n, skipped = total - n;
+  res.json({ recipients: n, skipped, chars: seg.chars, parts: seg.parts, estimatedUnits: n * seg.parts });
+}));
+app.post('/api/admin/sms/test', smsStaff, wrap(async (req, res) => {
+  const phone = normPhone(req.body.phone), m = cleanMsg(req.body.message);
+  if (!phone) return bad(res, 'Enter a valid Kenyan phone number.');
+  if (!m || m.length > 612) return bad(res, 'Write a message of up to 612 characters.');
+  if (!sms.live() || process.env.AT_ENV === 'sandbox') return bad(res, 'Live SMS provider is not configured. No message was sent.', 503);
+  const [r] = await sms.sendMany([phone], m, { senderId: pickSender(req.body.senderId) });
+  await audit(req, 'sms.test', 'sms', null, { ok: r.ok });
+  res.json(r);
+}));
+app.post('/api/admin/sms/campaigns', smsStaff, wrap(async (req, res) => {
+  const m = cleanMsg(req.body.message);
+  if (!m || m.length > 612) return bad(res, 'Write a message of up to 612 characters (4 SMS parts).');
+  const aud = req.body.audience || {}, { where, p } = audienceSql(aud), sender = pickSender(req.body.senderId);
+  const c = await pool.connect();
+  try {
+    await c.query('BEGIN');
+    const camp = (await c.query('INSERT INTO sms_campaigns (created_by, message, sender_id, audience) VALUES ($1,$2,$3,$4) RETURNING id', [req.user.sub, m, sender, aud])).rows[0];
+    const ins = await c.query(`INSERT INTO sms_messages (campaign_id, member_id, phone) SELECT $${p.length + 1}::uuid, m.id, m.phone FROM members m${where}`, [...p, camp.id]);
+    if (!ins.rowCount) { await c.query('ROLLBACK'); return bad(res, 'No members match this audience (members without a phone number or who opted out are skipped).'); }
+    await c.query('UPDATE sms_campaigns SET recipients=$1 WHERE id=$2', [ins.rowCount, camp.id]);
+    await c.query('COMMIT');
+    await audit(req, 'sms.campaign.created', 'sms_campaigns', camp.id, { recipients: ins.rowCount, sender });
+    res.status(201).json({ id: camp.id, recipients: ins.rowCount, senderId: sender });
+  } catch (e) { await c.query('ROLLBACK').catch(() => {}); throw e; } finally { c.release(); }
+}));
+// Sends the next batch (up to 200 numbers). The page calls this repeatedly until nothing is left, which keeps each call short.
+app.post('/api/admin/sms/campaigns/:id/send', smsStaff, wrap(async (req, res) => {
+  if (!sms.live() || process.env.AT_ENV === 'sandbox') return bad(res, 'Live SMS provider is not configured. No messages were sent.', 503);
+  const camp = (await db('SELECT message, sender_id FROM sms_campaigns WHERE id=$1', [req.params.id])).rows[0];
+  if (!camp) return bad(res, 'Campaign not found.', 404);
+  const rows = (await db(`WITH b AS (SELECT id FROM sms_messages WHERE campaign_id=$1 AND (status='queued' OR (status='sending' AND updated_at < now() - interval '5 minutes')) ORDER BY id LIMIT 200 FOR UPDATE SKIP LOCKED)
+    UPDATE sms_messages s SET status='sending', updated_at=now() FROM b WHERE s.id=b.id RETURNING s.id, s.phone`, [req.params.id])).rows;
+  let sent = 0, failed = 0;
+  if (rows.length) {
+    let results;
+    try { results = await sms.sendMany(rows.map(r => r.phone), camp.message, { senderId: camp.sender_id }); }
+    catch (e) { await db(`UPDATE sms_messages SET status='queued', updated_at=now() WHERE id = ANY($1::bigint[])`, [rows.map(r => r.id)]); return bad(res, e.message, 502); }
+    const byPhone = new Map(results.map(r => [r.phone, r]));
+    await db(`UPDATE sms_messages s SET status = CASE WHEN t.ok THEN 'sent' ELSE 'failed' END, provider_message_id = t.mid, cost = t.cost, error = t.err, updated_at = now()
+      FROM unnest($1::bigint[], $2::boolean[], $3::text[], $4::text[], $5::text[]) AS t(id, ok, mid, cost, err) WHERE s.id = t.id`,
+      [rows.map(r => r.id), rows.map(r => !!(byPhone.get(r.phone) || {}).ok), rows.map(r => (byPhone.get(r.phone) || {}).id || null), rows.map(r => (byPhone.get(r.phone) || {}).cost || null), rows.map(r => (byPhone.get(r.phone) || {}).error || null)]);
+    rows.forEach(r => ((byPhone.get(r.phone) || {}).ok ? sent++ : failed++));
+  }
+  const left = (await db(`SELECT count(*)::int AS n FROM sms_messages WHERE campaign_id=$1 AND status IN ('queued','sending')`, [req.params.id])).rows[0].n;
+  if (!left) await audit(req, 'sms.campaign.finished', 'sms_campaigns', req.params.id);
+  res.json({ sent, failed, remaining: left });
+}));
+app.get('/api/admin/sms/campaigns', smsStaff, wrap(async (req, res) => {
+  const r = await db(`SELECT c.id, to_char(c.created_at AT TIME ZONE 'Africa/Nairobi','DD Mon YYYY HH24:MI') AS date, c.message, c.sender_id, c.recipients,
+    count(*) FILTER (WHERE s.status='sent')::int AS sent, count(*) FILTER (WHERE s.status='failed')::int AS failed, count(*) FILTER (WHERE s.status IN ('queued','sending'))::int AS waiting
+    FROM sms_campaigns c LEFT JOIN sms_messages s ON s.campaign_id=c.id GROUP BY c.id ORDER BY c.created_at DESC LIMIT 50`);
+  res.json(r.rows);
+}));
+app.get('/api/admin/sms/campaigns/:id/failures', smsStaff, wrap(async (req, res) => {
+  res.json((await db(`SELECT s.phone, s.error, m.first_name || ' ' || m.last_name AS name FROM sms_messages s LEFT JOIN members m ON m.id=s.member_id WHERE s.campaign_id=$1 AND s.status='failed' ORDER BY s.id LIMIT 200`, [req.params.id])).rows);
 }));
 
 // ---------- errors and scheduler ----------
