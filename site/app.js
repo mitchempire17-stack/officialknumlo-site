@@ -1,5 +1,5 @@
 // Replace these with the union's real payment details
-const CFG={paybill:"000000",till:"000000",airtel:"000000",tkash:"000000",bank:"Bank name, Account name: KNUMLO, A/C 0000000000, Branch",acct:"Your membership number"};
+const CFG={paybill:"522533",till:"000000",airtel:"000000",tkash:"000000",bank:"Bank name, Account name: KNUMLO, A/C 1251326633, Branch",acct:"Your membership number"};
 const $=s=>document.querySelector(s);
 const CH={
 paybill:{n:"M-Pesa",stk:1,help:()=>`<p style="margin:0 0 6px"><b>Pay from your phone:</b></p><ol><li>Open <b>M-Pesa → Lipa na M-Pesa → Paybill</b>.</li><li>Business no. <code>${CFG.paybill}</code></li><li>Account no. <code>${CFG.acct}</code></li><li>Enter the amount, then your M-Pesa PIN.</li></ol><p style="margin:10px 0 0">Or enter your number above and press <b>Send M-Pesa prompt</b> to approve on your phone.</p>`},
